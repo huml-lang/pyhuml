@@ -94,7 +94,7 @@ class TestEncodeDoc(unittest.TestCase):
 
         # Deep compare both
         self.assertDictEqual(
-            self.assertDictEqual(res_huml_converted, res_json),
+            res_huml_converted, res_json,
             f"{huml_path} and {json_path} should be deeply equal"
         )
 
@@ -131,7 +131,7 @@ class TestDocuments(unittest.TestCase):
 
                 # Deep compare
                 self.assertDictEqual(
-                    self.assertDictEqual(res_huml, res_json),
+                    res_huml, res_json,
                     f"{huml_path} and {json_path} should be deeply equal"
                 )
 

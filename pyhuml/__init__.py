@@ -905,7 +905,7 @@ def _write_string(output: IO[str], s: str, indent: int) -> None:
         output.write("```")
     else:
         # Single line string - use JSON escaping
-        output.write(json.dumps(s))
+        output.write(json.dumps(s, ensure_ascii=False))
 
 
 def _write_dict(output: IO[str], d: dict, indent: int) -> None:
