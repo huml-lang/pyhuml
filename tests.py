@@ -13,6 +13,7 @@ class TestAssertions(unittest.TestCase):
     """Test assertions from JSON test files."""
 
     def test_assertions(self):
+        self.maxDiff = None
         """Walk the ./tests/assertions directory and run tests from JSON files."""
         # Find all JSON files in the assertions directory
         assertion_files = glob.glob("./tests/assertions/*.json")
@@ -66,6 +67,7 @@ class TestEncodeDoc(unittest.TestCase):
     """Test encoding and round-trip conversion."""
 
     def test_encode_doc(self):
+        self.maxDiff = None
         """Test that we can load a HUML doc, encode it, and get the same result."""
         # Check if test files exist
         huml_path = "tests/documents/mixed.huml"
@@ -165,8 +167,8 @@ class TestDocuments(unittest.TestCase):
             return data
 
 if __name__ == '__main__':
-    # import unittest
-    # unittest.main()
-    with open("tests/documents/mixed.huml", 'r', encoding='utf-8') as f:
-        input_str = f.read( )
-        print(pyhuml.loads(input_str))
+    import unittest
+    unittest.main()
+    # with open("tests/documents/mixed.huml", 'r', encoding='utf-8') as f:
+    #     input_str = f.read( )
+    #     print(pyhuml.loads(input_str))
