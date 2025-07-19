@@ -88,33 +88,15 @@ class TestEncodeDoc(unittest.TestCase):
         # Parse it again
         res_huml_converted = pyhuml.loads(marshalled)
 
-        # Normalize to JSON types (convert int to float for comparison)
-        normalized = self._normalize_to_json(res_huml_converted)
-
         # Read and parse the JSON file
         with open(json_path, 'r', encoding='utf-8') as f:
             res_json = json.load(f)
 
         # Deep compare both
-        self.assertEqual(
-            normalized,
-            res_json,
-            "mixed.huml and mixed.json should be deeply equal"
+        self.assertDictEqual(
+            self.assertDictEqual(res_huml_converted, res_json),
+            f"{huml_path} and {json_path} should be deeply equal"
         )
-
-    def _normalize_to_json(self, data: Any) -> Any:
-        """
-        Convert all numbers to float to match JSON's number representation.
-        This allows deep comparison between HUML and JSON parsed data.
-        """
-        if isinstance(data, dict):
-            return {k: self._normalize_to_json(v) for k, v in data.items()}
-        elif isinstance(data, list):
-            return [self._normalize_to_json(v) for v in data]
-        elif isinstance(data, int):
-            return float(data)
-        else:
-            return data
 
 
 class TestDocuments(unittest.TestCase):
@@ -142,29 +124,17 @@ class TestDocuments(unittest.TestCase):
                     huml_content = f.read()
 
                 res_huml = pyhuml.loads(huml_content)
-                normalized = self._normalize_to_json(res_huml)
 
                 # Read and parse JSON
                 with open(json_path, 'r', encoding='utf-8') as f:
                     res_json = json.load(f)
 
                 # Deep compare
-                self.assertEqual(
-                    normalized,
-                    res_json,
+                self.assertDictEqual(
+                    self.assertDictEqual(res_huml, res_json),
                     f"{huml_path} and {json_path} should be deeply equal"
                 )
 
-    def _normalize_to_json(self, data: Any) -> Any:
-        """Convert all numbers to float to match JSON's number representation."""
-        if isinstance(data, dict):
-            return {k: self._normalize_to_json(v) for k, v in data.items()}
-        elif isinstance(data, list):
-            return [self._normalize_to_json(v) for v in data]
-        elif isinstance(data, int):
-            return float(data)
-        else:
-            return data
 
 if __name__ == '__main__':
     import unittest

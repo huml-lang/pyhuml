@@ -365,8 +365,8 @@ def _is_inline_dict_root(p: Parser) -> bool:
 
     while pos < len(p.data) and p.data[pos] not in '\n#':
         if p.data[pos] == ':':
-            has_double_colon = (pos + 1 < len(p.data)
-                                and p.data[pos + 1] == ':')
+            if pos + 1 < len(p.data) and p.data[pos + 1] == ':':
+                has_double_colon = True
             has_colon = True
         elif p.data[pos] == ',':
             has_comma = True
@@ -634,8 +634,11 @@ def _parse_value(p: Parser, key_indent: int) -> Any:
 
     for keyword, value in VALUE_KEYWORDS.items():
         if p.peek_string(keyword):
-            p.advance(len(keyword))
-            return value
+            # Check that it's a complete word (not followed by alphanumeric or underscore)
+            next_pos = p.pos + len(keyword)
+            if next_pos >= len(p.data) or p.data[next_pos] not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_':
+                p.advance(len(keyword))
+                return value
 
     # Special numeric values with signs
     if c in '+-':
@@ -787,7 +790,29 @@ def _parse_number(p: Parser) -> Union[int, float]:
     num_str = p.data[start:p.pos].replace('_', '')
 
     try:
-        return float(num_str) if is_float else int(num_str)
+        if is_float:
+            result = float(num_str)
+            # Convert to int if it represents an integer value
+            if result.is_integer():
+                # For scientific notation, only convert if it's reasonable size and positive exponent
+                if 'e' in num_str.lower():
+                    # Parse the exponent
+                    parts = num_str.lower().split('e')
+                    if len(parts) == 2:
+                        try:
+                            exponent = int(parts[1])
+                            # Only convert if positive exponent and result is reasonable size
+                            if exponent >= 0 and abs(result) < 1e15:
+                                return int(result)
+                        except ValueError:
+                            pass
+                    return result
+                else:
+                    # Simple decimal like 0.0, 42.0 -> convert to int
+                    return int(result)
+            return result
+        else:
+            return int(num_str)
     except ValueError as e:
         raise p.error(f"invalid number: {e}")
 
