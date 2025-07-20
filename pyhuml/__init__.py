@@ -686,17 +686,6 @@ def _parse_string(p: Parser) -> str:
             esc = p.data[p.pos]
             if esc in escape_map:
                 result.append(escape_map[esc])
-            elif esc == 'u':
-                # Unicode escape - need exactly 4 hex digits
-                if p.pos + 4 >= len(p.data):
-                    raise p.error("incomplete unicode escape sequence \\u")
-                hex_digits = p.data[p.pos + 1:p.pos + 5]
-                try:
-                    result.append(chr(int(hex_digits, 16)))
-                except ValueError:
-                    raise p.error(
-                        f"invalid unicode escape sequence \\u{hex_digits}")
-                p.advance(4)
             else:
                 raise p.error(f"invalid escape character '\\{esc}'")
         else:
