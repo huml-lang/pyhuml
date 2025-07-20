@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyhuml"
+version = "0.1.0"
+description = "An experimental parser and dumper for the HUML (Human-oriented Markup Language) format."
+readme = "README.md"
+requires-python = ">=3.6"
+license = { text = "MIT" }
+authors = [{ name = "Kailash Nadh", email = "kailash@nadh.in" }]
+keywords = ["huml", "markup", "parser", "stringifier"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Text Processing :: Markup",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://huml.io"
+Repository = "https://github.com/huml-lang/pyhuml"
+
+[tool.setuptools.packages.find]
+include = ["pyhuml*"]
+
+[tool.setuptools.package-data]
+pyhuml = ["*"]
