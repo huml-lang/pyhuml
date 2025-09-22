@@ -552,6 +552,8 @@ def _parse_inline_dict(p: Parser) -> Dict[str, Any]:
         is_first = False
 
         key = _parse_key(p)
+        if key in result:
+            raise p.error(f"duplicate key '{key}' in dict")
 
         if p.done() or p.data[p.pos] != ':':
             raise p.error("expected ':' in inline dict")
@@ -618,7 +620,6 @@ def _parse_key(p: Parser) -> str:
 
 
 def _parse_value(p: Parser, key_indent: int) -> Any:
-   
     """Parse any scalar value."""
     if p.done():
         raise p.error("unexpected end of input, expected a value")
