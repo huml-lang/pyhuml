@@ -510,7 +510,11 @@ def _parse_vector(p: Parser, indent: int) -> Union[List, Dict]:
             raise p.error("ambiguous empty vector after '::'. Use [] or {}.")
 
         # Determine type by first character
-        return _parse_multiline_list(p, p.get_indent()) if p.data[p.pos] == '-' else _parse_multiline_dict(p, p.get_indent())
+        return (
+            _parse_multiline_list(p, indent)
+            if p.data[p.pos] == "-"
+            else _parse_multiline_dict(p, indent)
+        )
 
     # Inline vector - must have exactly one space
     p.pos = start_pos
