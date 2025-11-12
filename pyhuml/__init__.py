@@ -10,7 +10,7 @@ import math
 import json
 from typing import Any, Dict, List, Union, Optional, IO
 from io import StringIO
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 # Precompiled regular expressions
