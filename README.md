@@ -11,10 +11,10 @@ pip install pyhuml
 ```python
 import pyhuml
 
-// Parse HUML into JS data structures.
+# Parse HUML into Python data structures.
 print(pyhuml.loads(huml_doc))
 
-// Dump JS data structures into HUML.
+# Dump Python data structures into HUML.
 print(pyhuml.dumps(obj))
 
 ```
