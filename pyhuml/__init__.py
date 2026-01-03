@@ -501,13 +501,15 @@ def _parse_vector(p: Parser, indent: int) -> Union[List, Dict]:
     # Check for multiline vector
     if p.done() or p.data[p.pos] in '\n#':
         p.pos = start_pos
+        # Capture line number of the vector indicator before skipping ahead
+        vector_line = p.line
         p.consume_line()
 
         # Peek at next line to determine type
         p.skip_blank_lines()
 
         if p.done() or p.get_indent() < indent:
-            raise p.error("ambiguous empty vector after '::'. Use [] or {}.")
+            raise HUMLParseError("ambiguous empty vector after '::'. Use [] or {}.", vector_line)
 
         # Determine type by first character
         return (
