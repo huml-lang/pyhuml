@@ -18,7 +18,7 @@ BARE_KEY_RE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_-]*$')
 VERSION_RE = re.compile(r'^v\d+\.\d+\.\d+$')
 
 # Constants for better readability
-SUPPORTED_VERSION = "v0.1.0"
+SUPPORTED_VERSION = "v0.2.0"
 MULTILINE_INDENT = 2  # Indentation for multiline content
 
 VALUE_KEYWORDS = {
@@ -451,7 +451,7 @@ def _parse_multiline_dict(p: Parser, indent: int) -> Dict[str, Any]:
                 p.expect_single_space("after ':'")
 
                 # Check if multiline string
-                is_multiline = p.peek_string("```") or p.peek_string('"""')
+                is_multiline = p.peek_string('"""')
                 result[key] = _parse_value(p, indent)
 
                 if not is_multiline:
@@ -634,10 +634,7 @@ def _parse_value(p: Parser, key_indent: int) -> Any:
 
     # String literals
     if c == '"':
-        return _parse_multiline_string(p, key_indent, strip_spaces=True) if p.peek_string('"""') else _parse_string(p)
-
-    if c == '`' and p.peek_string('```'):
-        return _parse_multiline_string(p, key_indent, strip_spaces=False)
+        return _parse_multiline_string(p, key_indent) if p.peek_string('"""') else _parse_string(p)
 
     for keyword, value in VALUE_KEYWORDS.items():
         if p.peek_string(keyword):
@@ -703,8 +700,8 @@ def _parse_string(p: Parser) -> str:
     raise p.error("unclosed string")
 
 
-def _parse_multiline_string(p: Parser, key_indent: int, strip_spaces: bool) -> str:
-    """Parse multiline string (``` or \"\"\")."""
+def _parse_multiline_string(p: Parser, key_indent: int) -> str:
+    """Parse \"\"\" (preserves preceding space) multiline strings."""
     delim = p.data[p.pos:p.pos + 3]
     p.advance(3)
     p.consume_line()
@@ -734,17 +731,12 @@ def _parse_multiline_string(p: Parser, key_indent: int, strip_spaces: bool) -> s
         p.pos = line_start
         line_content = p.consume_line_raw()
 
-        # Process line based on string type
-        if strip_spaces:
-            # Triple quotes: strip all whitespace
-            lines.append(line_content.strip())
+        # Strip the required 2-space indent relative to the key
+        req_indent = key_indent + MULTILINE_INDENT
+        if len(line_content) >= req_indent and line_content[:req_indent].strip() == '':
+            lines.append(line_content[req_indent:])
         else:
-            # Backticks: preserve content after required indent
-            req_indent = key_indent + MULTILINE_INDENT
-            if len(line_content) >= req_indent and line_content[:req_indent].strip() == '':
-                lines.append(line_content[req_indent:])
-            else:
-                lines.append(line_content)
+            lines.append(line_content)
 
     raise p.error("unclosed multiline string")
 
@@ -883,7 +875,7 @@ def _write_string(output: IO[str], s: str, indent: int) -> None:
     """Write a string value."""
     if '\n' in s:
         # Multiline string
-        output.write("```\n")
+        output.write('"""\n')
         lines = s.split('\n')
 
         # Remove empty last line if string ends with newline
@@ -898,7 +890,7 @@ def _write_string(output: IO[str], s: str, indent: int) -> None:
 
         # Closing delimiter at key indent level
         output.write(' ' * (indent - MULTILINE_INDENT))
-        output.write("```")
+        output.write('"""')
     else:
         # Single line string - use JSON escaping
         output.write(json.dumps(s, ensure_ascii=False))
