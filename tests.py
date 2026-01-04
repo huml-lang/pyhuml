@@ -4,140 +4,123 @@ import glob
 import unittest
 from io import StringIO
 
-# Import the pyhuml module (assuming it's in the same directory or installed)
 import pyhuml
 
 
-class TestAssertions(unittest.TestCase):
-    """Test assertions from JSON test files."""
-
-    def test_assertions(self):
-        self.maxDiff = None
-        """Walk the ./tests/assertions directory and run tests from JSON files."""
-        # Find all JSON files in the assertions directory
-        assertion_files = glob.glob("./tests/assertions/*.json")
-
-        if not assertion_files:
-            self.skipTest("No assertion files found in ./tests/assertions/")
-
-        for filepath in assertion_files:
-            with self.subTest(file=filepath):
-                # Read the JSON test file
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    tests = json.load(f)
-
-                # Run each assertion
-                for n, test_case in enumerate(tests):
-                    # +2 to account for the opening [ and the line break in the test file
-                    test_name = f"line {n + 2}: {test_case['name']}"
-
-                    with self.subTest(test=test_name):
-                        self._run_assertion(
-                            test_case['input'],
-                            test_case['error']
-                        )
-
-    def _run_assertion(self, input_str: str, error_expected: bool):
-        """Run a single assertion test."""
-        # Test with loads() directly
+def make_assertion_test(test_name, input_str, error_expected):
+    """Create a test method for an individual assertion."""
+    def test_method(self):
         if error_expected:
             with self.assertRaises(pyhuml.HUMLError):
                 pyhuml.loads(input_str)
-        else:
-            # Should not raise an error
-            try:
-                result = pyhuml.loads(input_str)
-            except pyhuml.HUMLError as e:
-                self.fail(f"Unexpected error: {e}")
-
-        # Test again via load() with StringIO
-        if error_expected:
             with self.assertRaises(pyhuml.HUMLError):
                 pyhuml.load(StringIO(input_str))
         else:
-            # Should not raise an error
             try:
-                result = pyhuml.load(StringIO(input_str))
+                pyhuml.loads(input_str)
+                pyhuml.load(StringIO(input_str))
             except pyhuml.HUMLError as e:
                 self.fail(f"Unexpected error: {e}")
 
+    test_method.__name__ = f"test_{test_name}"
+    test_method.__doc__ = test_name
+    return test_method
 
-class TestEncodeDoc(unittest.TestCase):
-    """Test encoding and round-trip conversion."""
 
-    def test_encode_doc(self):
-        self.maxDiff = None
-        """Test that we can load a HUML doc, encode it, and get the same result."""
-        # Check if test files exist
-        huml_path = "tests/documents/mixed.huml"
-        json_path = "tests/documents/mixed.json"
-
-        if not os.path.exists(huml_path) or not os.path.exists(json_path):
-            self.skipTest(f"Test files not found: {huml_path} or {json_path}")
-
-        # Read and parse the HUML file
+def make_document_test(huml_path, json_path):
+    """Create a test method for an individual document."""
+    def test_method(self):
         with open(huml_path, 'r', encoding='utf-8') as f:
             huml_content = f.read()
 
         res_huml = pyhuml.loads(huml_content)
 
-        # Marshal it back to HUML
-        marshalled = pyhuml.dumps(res_huml)
-
-        # Parse it again
-        res_huml_converted = pyhuml.loads(marshalled)
-
-        # Read and parse the JSON file
         with open(json_path, 'r', encoding='utf-8') as f:
             res_json = json.load(f)
 
-        # Deep compare both
-        self.assertDictEqual(
-            res_huml_converted, res_json,
-            f"{huml_path} and {json_path} should be deeply equal"
-        )
+        self.assertEqual(res_huml, res_json)
+
+    basename = os.path.basename(huml_path)
+    test_method.__name__ = f"test_{basename}"
+    test_method.__doc__ = f"testing {basename}"
+    return test_method
+
+
+def make_encode_test(huml_path, json_path):
+    """Create a test method for an individual encode round-trip."""
+    def test_method(self):
+        with open(huml_path, 'r', encoding='utf-8') as f:
+            huml_content = f.read()
+
+        res_huml = pyhuml.loads(huml_content)
+        marshalled = pyhuml.dumps(res_huml)
+        res_huml_converted = pyhuml.loads(marshalled)
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            res_json = json.load(f)
+
+        self.assertEqual(res_huml_converted, res_json)
+
+    basename = os.path.basename(huml_path)
+    test_method.__name__ = f"test_encode_{basename}"
+    test_method.__doc__ = f"encode round-trip {basename}"
+    return test_method
+
+
+class TestAssertions(unittest.TestCase):
+    """Test assertions from JSON test files."""
+    pass
 
 
 class TestDocuments(unittest.TestCase):
     """Test loading HUML documents and comparing with JSON equivalents."""
+    pass
 
-    def test_documents(self):
-        """Test all HUML documents against their JSON counterparts."""
-        # Find all HUML files in the documents directory
-        huml_files = glob.glob("tests/documents/*.huml")
 
-        if not huml_files:
-            self.skipTest("No HUML files found in tests/documents/")
+class TestEncode(unittest.TestCase):
+    """Test encoding and round-trip conversion."""
+    pass
 
-        for huml_path in huml_files:
-            json_path = huml_path[:-5] + ".json"  # Replace .huml with .json
 
-            with self.subTest(file=huml_path):
-                # Skip if corresponding JSON doesn't exist
-                if not os.path.exists(json_path):
-                    self.skipTest(
-                        f"No corresponding JSON file for {huml_path}")
+def load_tests(loader, tests, pattern):
+    """Dynamically generate test cases from JSON test files."""
+    suite = unittest.TestSuite()
 
-                # Read and parse HUML
-                with open(huml_path, 'r', encoding='utf-8') as f:
-                    huml_content = f.read()
+    # Load assertion tests
+    assertion_files = sorted(glob.glob("./tests/assertions/*.json"))
+    for filepath in assertion_files:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            test_cases = json.load(f)
 
-                res_huml = pyhuml.loads(huml_content)
+        for n, test_case in enumerate(test_cases):
+            test_name = f"{test_case['name']}"
+            test_method = make_assertion_test(
+                test_name,
+                test_case['input'],
+                test_case['error']
+            )
+            setattr(TestAssertions, test_method.__name__, test_method)
 
-                # Read and parse JSON
-                with open(json_path, 'r', encoding='utf-8') as f:
-                    res_json = json.load(f)
+    # Load document tests
+    huml_files = sorted(glob.glob("./tests/documents/*.huml"))
+    for huml_path in huml_files:
+        json_path = huml_path[:-5] + ".json"
+        if os.path.exists(json_path):
+            # Document comparison test
+            test_method = make_document_test(huml_path, json_path)
+            setattr(TestDocuments, test_method.__name__, test_method)
 
-                # Deep compare
-                self.assertDictEqual(
-                    res_huml, res_json,
-                    f"{huml_path} and {json_path} should be deeply equal"
-                )
+            # Encode round-trip test
+            encode_method = make_encode_test(huml_path, json_path)
+            setattr(TestEncode, encode_method.__name__, encode_method)
+
+    # Add all test classes to suite
+    suite.addTests(loader.loadTestsFromTestCase(TestAssertions))
+    suite.addTests(loader.loadTestsFromTestCase(TestDocuments))
+    suite.addTests(loader.loadTestsFromTestCase(TestEncode))
+
+    return suite
 
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main()
-    # with open("tests/documents/mixed.huml", 'r', encoding='utf-8') as f:
-    #     input_str = f.read( )
-    #     print(pyhuml.loads(input_str))
+    unittest.main(verbosity=2)
