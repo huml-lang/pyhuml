@@ -104,9 +104,16 @@ class Parser:
                 raise self.error("trailing spaces are not allowed")
         elif self.data[self.pos] == '#':
             # Handle inline comment
-            if self.pos == content_start and self.get_indent() != self.pos - self._line_start():
-                raise self.error(
-                    "a value must be separated from an inline comment by a space")
+            # If we're already at '#' (spaces were already skipped), check if there's a space before it
+            if self.pos == content_start:
+                # Check if there's a space before current position (spaces were already consumed)
+                if self.pos > 0 and self.data[self.pos - 1] == ' ':
+                    # Space exists before '#', so spaces were already consumed - allow it
+                    pass
+                elif self.get_indent() != self.pos - self._line_start():
+                    # No space before '#' and wrong indent - error
+                    raise self.error(
+                        "a value must be separated from an inline comment by a space(s)")
 
             self.pos += 1  # Consume '#'
             if not self.done() and self.data[self.pos] not in ' \n':
@@ -597,13 +604,13 @@ def _parse_inline_list(p: Parser) -> List[Any]:
 
 
 def _skip_spaces_before_comma(p: Parser) -> None:
-    """Skip spaces only if followed by comma."""
+    """Skip spaces if followed by comma or comment."""
     if not p.done() and p.data[p.pos] == ' ':
-        # Peek ahead for comma
+        # Peek ahead for comma or comment
         next_pos = p.pos + 1
         while next_pos < len(p.data) and p.data[next_pos] == ' ':
             next_pos += 1
-        if next_pos < len(p.data) and p.data[next_pos] == ',':
+        if next_pos < len(p.data) and (p.data[next_pos] == ',' or p.data[next_pos] == '#'):
             p.skip_spaces()
 
 
