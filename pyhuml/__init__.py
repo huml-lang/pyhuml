@@ -613,7 +613,7 @@ def _skip_spaces_before_comma_or_comment(p: Parser) -> None:
     peek_pos = p.pos
     while peek_pos < len(p.data) and p.data[peek_pos] == ' ':
         peek_pos += 1
-    
+
     # If we find comma or comment after spaces (or immediately), skip the spaces
     if peek_pos < len(p.data) and (p.data[peek_pos] == ',' or p.data[peek_pos] == '#'):
         p.skip_spaces()
