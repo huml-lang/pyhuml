@@ -608,7 +608,7 @@ def _skip_spaces_before_comma_or_comment(p: Parser) -> None:
     """Skip spaces if followed by comma or comment."""
     if p.done():
         return
-    
+
     # Peek ahead to see what comes after (possibly after spaces)
     peek_pos = p.pos
     while peek_pos < len(p.data) and p.data[peek_pos] == ' ':
