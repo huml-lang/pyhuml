@@ -104,9 +104,17 @@ class Parser:
                 raise self.error("trailing spaces are not allowed")
         elif self.data[self.pos] == '#':
             # Handle inline comment
-            if self.pos == content_start and self.get_indent() != self.pos - self._line_start():
-                raise self.error(
-                    "a value must be separated from an inline comment by a space")
+            # If we're already at '#' (no spaces were skipped by skip_spaces above),
+            # check if there's a space before it (spaces may have been consumed earlier)
+            if self.pos == content_start:
+                # Check if there's a space before the '#' character
+                if self.pos > 0 and self.data[self.pos - 1] == ' ':
+                    # Space exists before '#', so spaces were already consumed - allow it
+                    pass
+                elif self.get_indent() != self.pos - self._line_start():
+                    # No space before '#' and wrong indent - error
+                    raise self.error(
+                        "a value must be separated from an inline comment by a space")
 
             self.pos += 1  # Consume '#'
             if not self.done() and self.data[self.pos] not in ' \n':
@@ -570,8 +578,8 @@ def _parse_inline_dict(p: Parser) -> Dict[str, Any]:
         value = _parse_value(p, 0)
         result[key] = value
 
-        # Skip trailing spaces only if comma follows
-        _skip_spaces_before_comma(p)
+        # Skip trailing spaces if comma or comment follows
+        _skip_spaces_before_comma_or_comment(p)
 
     p.consume_line()
     return result
@@ -589,22 +597,26 @@ def _parse_inline_list(p: Parser) -> List[Any]:
 
         result.append(_parse_value(p, 0))
 
-        # Skip trailing spaces only if comma follows
-        _skip_spaces_before_comma(p)
+        # Skip trailing spaces if comma or comment follows
+        _skip_spaces_before_comma_or_comment(p)
 
     p.consume_line()
     return result
 
 
-def _skip_spaces_before_comma(p: Parser) -> None:
-    """Skip spaces only if followed by comma."""
-    if not p.done() and p.data[p.pos] == ' ':
-        # Peek ahead for comma
-        next_pos = p.pos + 1
-        while next_pos < len(p.data) and p.data[next_pos] == ' ':
-            next_pos += 1
-        if next_pos < len(p.data) and p.data[next_pos] == ',':
-            p.skip_spaces()
+def _skip_spaces_before_comma_or_comment(p: Parser) -> None:
+    """Skip spaces if followed by comma or comment."""
+    if p.done():
+        return
+
+    # Peek ahead to see what comes after (possibly after spaces)
+    peek_pos = p.pos
+    while peek_pos < len(p.data) and p.data[peek_pos] == ' ':
+        peek_pos += 1
+
+    # If we find comma or comment after spaces (or immediately), skip the spaces
+    if peek_pos < len(p.data) and (p.data[peek_pos] == ',' or p.data[peek_pos] == '#'):
+        p.skip_spaces()
 
 
 def _parse_key(p: Parser) -> str:
